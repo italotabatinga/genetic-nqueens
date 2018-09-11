@@ -1,6 +1,7 @@
 class GenNQueens {
   constructor(N, pop, mut_prob) {
     this.generation= new Array(pop);
+    this.bad_repository = new Array(Math.floor(Math.sqrt(N)));
     this.N = N;
     this.pop = pop;
     this.mut_prob = mut_prob;
@@ -8,13 +9,21 @@ class GenNQueens {
     this.solution = undefined;
     this.foundSolution = false;
 
+    this.epochs = 0;
     this.init_population();
     // this.sort_population();
   }
 
   init_population() {
+    // Initiate epoch 0
     for(let i = 0; i < this.pop; i++) {
-      this.generation[i] = Array.from({length: this.N}, () => Math.floor(Math.random() * this.N));
+      this.generation[i] = shuffle(Array.from({length: this.N}, (val, index) => index));
+    }
+
+    //Define bad repository
+    this.sort_population();
+    for(let i = 0; i < this.bad_repository.length; i++) {
+      this.bad_repository[i] = this.generation[this.pop-1-i].slice();
     }
   }
 
@@ -24,34 +33,50 @@ class GenNQueens {
     })
   }
 
+  // Fisher-Yates Shuffle
+  // https://bost.ocks.org/mike/shuffle/
+
+  shuffle(array) {
+    var m = array.length, t, i;
+  
+    // While there remain elements to shuffle…
+    while (m) {
+  
+      // Pick a remaining element…
+      i = Math.floor(Math.random() * m--);
+  
+      // And swap it with the current element.
+      t = array[m];
+      array[m] = array[i];
+      array[i] = t;
+    }
+  
+    return array;
+  }
+
   fitness(chromosome) {
     let t1 = 0;
     let t2 = 0;
-    let t3 = 0;
+
     let size = chromosome.length;
     let f1 = new Array(size);
     let f2 = new Array(size);
-    let f3 = new Array(size);
 
     for(let i = 0; i < size; i++) {
       f1[i] = chromosome[i] - i;
       f2[i] = (1+size) - chromosome[i] - i;
-      f3[i] = chromosome[i];
     }
 
     f1.sort()
     f2.sort()
-    f3.sort()
 
     for(let i = 1; i < size; i++) {
       if(f1[i] == f1[i-1])
         t1 += 1;
       if(f2[i] == f2[i-1])
         t2 += 1;
-      if(f3[i] == f3[i-1])
-        t3 += 1;
     }
-    return t1+t2+t3;
+    return t1+t2;
   }
 
   crossover(parent1, parent2) {
@@ -60,23 +85,38 @@ class GenNQueens {
     if (inf > sup) {
       let temp = inf;
       inf = sup;
-      sup = inf;
+      sup = temp;
     }
 
     let child1 = new Array(this.N);
     let child2 = new Array(this.N);
 
+    let idx_p1 = 0;
+    let idx_p2 = 0;
+
     for(let i = 0; i < this.N; i++) {
       if(i < inf || i > sup) {
+        while(parent1.slice(inf,sup+1).includes(parent2[idx_p2])) {
+          idx_p2++;
+        }
+        child1[i] = parent2[idx_p2]; 
+        idx_p2++;
+        while(parent2.slice(inf,sup+1).includes(parent1[idx_p1])) {
+          idx_p1++;
+        }
+        child2[i] = parent1[idx_p1]; 
+        idx_p1++;
+      } else {
         child1[i] = parent1[i]; 
         child2[i] = parent2[i]; 
-      } else {
-        child2[i] = parent1[i]; 
-        child1[i] = parent2[i]; 
       }
     }
-    this.mutate(child1);
-    this.mutate(child2);
+    this.mutate(child1); // Mutation
+    this.mutate(child2); // Mutation
+    if (Math.random() < (this.mut_prob / 2)) // Double Mutation
+      this.mutate(child1);
+    if (Math.random() < (this.mut_prob / 2)) // Double Mutation
+      this.mutate(child2);
     return new Array(child1, child2);
   }
 
@@ -84,6 +124,7 @@ class GenNQueens {
     // Survival array to select parents based on its fitness
     // Store N-fitness(number)  index of each parent to simulate
     // probability
+    this.epochs++;
     let survival = new Array();
     
     let old_gen = this.generation;
@@ -95,7 +136,8 @@ class GenNQueens {
         this.foundSolution = true;
         this.solution = chromosome;
       }
-      let num_repetitions = this.N - fit > 0 ? this.N - fit : 0;
+      let num_repetitions = 2*this.N - fit;//Math.pow(this.N - fit,2);
+
       survival = survival.concat(new Array(num_repetitions).fill(index));
     });
 
@@ -112,68 +154,24 @@ class GenNQueens {
   }
 
   mutate(chromosome) {
-    if (Math.random() > this.mut_prob)
-      return;
-    let unique = new Array();
-    let values = new Array();
-    let repeated_indexes = new Array();
-    for(let i = 0; i < this.N; i++) {
-      unique.push(i);
-      values.push(i);
-    }
-
-    for(let i = 0; i < this.N; i++) {
-      let includes = unique.indexOf(chromosome[i]);
-      if(includes > 0) {
-        unique.splice(includes,1);
-      }
-    }
-
-    if(unique.length >= 0) {
-      for(let i = 0; i < this.N; i++) {
-        let includes = values.indexOf(chromosome[i]);
-        if(includes> 0) {
-          values.splice(includes,1);
-        } else {
-          chromosome[i] = unique[0];
-          unique.shift();
-          if(unique.length == 0)
-            break;
-        }
-      }
-    }
+    let rollback_chromo = chromosome.slice();
     let index1 = Math.floor(Math.random() * this.N);
     let index2 = Math.floor(Math.random() * this.N);
 
     let temp = chromosome[index1];
     chromosome[index1] = chromosome[index2];
     chromosome[index2] = temp;
-
-
-
-    // let chromo_copy = chromosome.slice();
-    // chromo_copy.sort();
-    
-    // let repeated_value = -1;
-    // for(let i = 0; i < this.N-1; i++) {
-    //   if(chromo_copy[i] == chromo_copy[i+1]) {
-    //     repeated_value = chromo_copy[i];
-    //     break;
-    //   }
-    // }
-    // if (repeated_value > 0) {
-    //   for(let i = 0; i < this.N; i++) {
-    //     if(chromosome[i] == repeated_value) {
-    //       chromosome[i] = Math.floor(Math.random() * this.N);
-    //     }
-    //   }
-    // }
+    if(this.fitness(chromosome) < this.fitness(rollback_chromo)){
+      chromosome[index1] = rollback_chromo[index1];
+      chromosome[index2] = rollback_chromo[index2];
+    }
   }
 
   debug_sort_population() {
     // for(let i = 0; i < this.pop; i++) {
     //   console.log(this.fitness(this.generation[i]));
     // }
+    this.sort_population()
     this.generation.forEach(chromo => {
       console.log(this.fitness(chromo));
     })
