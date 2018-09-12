@@ -2,6 +2,7 @@
 
 var nQueens;
 var N;
+var time;
 
 // Canvas Variables
 var cnv;
@@ -20,6 +21,8 @@ var timeButton;
 function setup() {
   nQueens = new GenNQueens(50, 20, 0.5);
   N = nQueens.N;
+  time = undefined;
+
   cnv = createCanvas(500,600);
   boardh = 500;
   boardw = 500;
@@ -29,18 +32,21 @@ function setup() {
   cnv.position(x, y);
 
   inputN = createInput('50');
-  inputN.style('width', '100px');
+  inputN.style('width', '80px');
   inputN.position(x, y-inputN.height);
   inputPop = createInput('20');
-  inputPop.style('width', '100px');
+  inputPop.style('width', '80px');
   inputPop.position(x + inputN.width, y - inputPop.height);
   inputMut = createInput('0.5');
-  inputMut.style('width', '100px');
+  inputMut.style('width', '80px');
   inputMut.position(x + inputN.width+inputPop.width, y - inputMut.height);
   
   simButton = createButton('Run Simulation!')
   simButton.position(x+width-simButton.width, y-simButton.height);
   simButton.mousePressed(runSim);
+  timeButton = createButton('Measure Time!')
+  timeButton.position(x+width-simButton.width-timeButton.width, y-timeButton.height);
+  timeButton.mousePressed(measureTime);
   // frameRate(0);
 }
 
@@ -55,14 +61,19 @@ function windowResized() {
 }
 
 function runSim(Nlocal, poplocal, mutlocal) {
+  time = undefined;
   nQueens = new GenNQueens(inputN.value(), inputPop.value(), inputMut.value());
   N = nQueens.N;
 }
 
-function measureTime(Nlocal, pop, mut) {
-  frameRate(0);
-  nQueens = new GenNQueens(Nlocal,pop, mut);
+function measureTime() {
+  time = undefined;
+  nQueens = new GenNQueens(inputN.value(), inputPop.value(), inputMut.value());
   N = nQueens.N;
+  textAlign(CENTER);
+  fill(255);
+  text("Running Time Measurements", boardw/2, boardh + (height-boardh)/2);
+  frameRate(0);
   let start = performance.now();
   let i = 0;
   while(!nQueens.foundSolution) {
@@ -70,11 +81,11 @@ function measureTime(Nlocal, pop, mut) {
     if (i++ == 1000) {
       nQueens.sort_population();
       console.log(nQueens.fitness(nQueens.generation[0]));
-      // nQueens.debug_sort_population();
       i = 0;
     }
   }
   let end = performance.now();
+  time = end - start;
   console.log(nQueens.solution, end-start);
   frameRate(60);
 }
@@ -135,6 +146,8 @@ function draw() {
   drawHistogram();
   fill(255);
   textAlign(RIGHT);
+  if(time)
+    text("Time: " + time, boardw, height);
   text("Epochs: " + nQueens.epochs, boardw,boardh+10)
   textAlign(LEFT);
   text("FPS "+Math.round(frameRate()), 0,boardh+10);
