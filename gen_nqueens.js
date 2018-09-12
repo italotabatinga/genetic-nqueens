@@ -135,6 +135,7 @@ class GenNQueens {
     
     let old_gen = this.generation.slice();
 
+    // Build survival
     old_gen.forEach((chromosome, index) => {
       let fit = this.fitness(chromosome);
       if (fit == 0) {
@@ -147,6 +148,7 @@ class GenNQueens {
       survival = survival.concat(new Array(num_repetitions).fill(index));
     });
 
+    // Add children from crossovering parents
     let num_iter = ceil(this.pop / 2);
     for(let i = 0; i < num_iter; i++) {
       let parent1 = old_gen[survival[Math.floor(Math.random() * survival.length)]];
@@ -154,6 +156,17 @@ class GenNQueens {
     
       this.generation = this.generation.concat(this.crossover(parent1, parent2));
     }
+    
+    // Add bad repository crossover
+    let bad_parent1 = this.bad_repository[Math.floor(Math.random() * this.bad_repository.length)];
+    let bad_parent2 = this.bad_repository[Math.floor(Math.random() * this.bad_repository.length)];
+    this.generation = this.generation.concat(this.crossover(bad_parent1, bad_parent2));
+    
+    let bad_parent = this.bad_repository[Math.floor(Math.random() * this.bad_repository.length)];
+    let good_parent = old_gen[survival[Math.floor(Math.random() * survival.length)]];
+    this.generation = this.generation.concat(this.crossover(good_parent, bad_parent));
+
+    // Natural Selection, pick the N best
     this.sort_population();
     this.generation = this.generation.slice(0,this.pop);
   }
