@@ -58,6 +58,7 @@ function windowResized() {
   inputPop.position(x + inputN.width, y - inputPop.height);
   inputMut.position(x + inputN.width+inputPop.width, y - inputMut.height);
   simButton.position(x+width-simButton.width, y-simButton.height);
+  timeButton.position(x+width-simButton.width-timeButton.width, y-timeButton.height);
 }
 
 function runSim(Nlocal, poplocal, mutlocal) {
