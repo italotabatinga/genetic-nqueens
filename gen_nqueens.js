@@ -8,6 +8,7 @@ class GenNQueens {
   
     this.solution = undefined;
     this.foundSolution = false;
+    this.handleLocalMinimum = 0;
 
     this.epochs = 0;
     this.histogram = new Array(N);
@@ -24,7 +25,7 @@ class GenNQueens {
     //Define bad repository
     this.sort_population();
     for(let i = 0; i < this.bad_repository.length; i++) {
-      this.bad_repository[i] = this.generation[this.pop-1-i].slice();
+      this.bad_repository[i] = shuffle(Array.from({length: this.N}, (val, index) => index));
     }
   }
 
@@ -149,11 +150,14 @@ class GenNQueens {
     });
 
     // Add children from crossovering parents
-    let num_iter = ceil(this.pop / 2);
+    let num_iter = Math.floor(this.pop / 2);
     for(let i = 0; i < num_iter; i++) {
       let parent1 = old_gen[survival[Math.floor(Math.random() * survival.length)]];
       let parent2 = old_gen[survival[Math.floor(Math.random() * survival.length)]];
-    
+      // let parent1 = old_gen[2*i];
+      // let parent2 = old_gen[2*i+1];
+      
+
       this.generation = this.generation.concat(this.crossover(parent1, parent2));
     }
     
@@ -164,11 +168,26 @@ class GenNQueens {
     
     let bad_parent = this.bad_repository[Math.floor(Math.random() * this.bad_repository.length)];
     let good_parent = old_gen[survival[Math.floor(Math.random() * survival.length)]];
+    // let good_parent = old_gen[Math.floor(Math.random() * this.pop)];
     this.generation = this.generation.concat(this.crossover(good_parent, bad_parent));
 
     // Natural Selection, pick the N best
     this.sort_population();
     this.generation = this.generation.slice(0,this.pop);
+    // this.generation = this.generation.slice(0,this.pop-Math.floor(this.pop/10)).concat(this.generation.slice(this.generation.length-Math.floor(this.pop/10),this.generation.length));
+    // console.log(this.generation.length)
+
+    // Handle Local Minimum
+    let fit = this.fitness(this.generation[0]);
+    if (this.histogram[fit] == this.pop) {
+      this.handleLocalMinimum++;
+    }
+    // if(this.handleLocalMinimum == 200) {
+    //   this.handleLocalMinimum = 0;
+    //   for(let i = 0/*Math.floor(this.pop / 2)*/; i < this.pop; i++) {
+    //     this.generation[i] = shuffle(this.generation[i]);
+    //   }
+    // }
   }
 
   mutate(chromosome) {
@@ -179,10 +198,10 @@ class GenNQueens {
     let temp = chromosome[index1];
     chromosome[index1] = chromosome[index2];
     chromosome[index2] = temp;
-    // if(this.fitness(chromosome) < this.fitness(rollback_chromo)){
-    //   chromosome[index1] = rollback_chromo[index1];
-    //   chromosome[index2] = rollback_chromo[index2];
-    // }
+    if(this.fitness(chromosome) > this.fitness(rollback_chromo)){
+      chromosome[index1] = rollback_chromo[index1];
+      chromosome[index2] = rollback_chromo[index2];
+    }
   }
 
   debug_sort_population() {
