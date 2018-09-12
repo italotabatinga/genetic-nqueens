@@ -10,6 +10,7 @@ class GenNQueens {
     this.foundSolution = false;
 
     this.epochs = 0;
+    this.histogram = new Array(N);
     this.init_population();
     // this.sort_population();
   }
@@ -111,12 +112,16 @@ class GenNQueens {
         child2[i] = parent2[i]; 
       }
     }
-    this.mutate(child1); // Mutation
-    this.mutate(child2); // Mutation
-    if (Math.random() < (this.mut_prob / 2)) // Double Mutation
-      this.mutate(child1);
-    if (Math.random() < (this.mut_prob / 2)) // Double Mutation
-      this.mutate(child2);
+    if (Math.random() < (this.mut_prob)) {
+      this.mutate(child1); // Mutation
+      if (Math.random() < (this.mut_prob / 2)) // Double Mutation
+        this.mutate(child1);
+    }
+    if (Math.random() < (this.mut_prob)) {
+      this.mutate(child2); // Mutation
+      if (Math.random() < (this.mut_prob / 2)) // Double Mutation
+        this.mutate(child2);
+    } 
     return new Array(child1, child2);
   }
 
@@ -125,10 +130,10 @@ class GenNQueens {
     // Store N-fitness(number)  index of each parent to simulate
     // probability
     this.epochs++;
+    this.histogram.fill(0);
     let survival = new Array();
     
-    let old_gen = this.generation;
-    this.generation = new Array();
+    let old_gen = this.generation.slice();
 
     old_gen.forEach((chromosome, index) => {
       let fit = this.fitness(chromosome);
@@ -136,6 +141,7 @@ class GenNQueens {
         this.foundSolution = true;
         this.solution = chromosome;
       }
+      this.histogram[fit]++;
       let num_repetitions = 2*this.N - fit;//Math.pow(this.N - fit,2);
 
       survival = survival.concat(new Array(num_repetitions).fill(index));
@@ -148,9 +154,8 @@ class GenNQueens {
     
       this.generation = this.generation.concat(this.crossover(parent1, parent2));
     }
-    if(this.generation.length > this.pop) {
-      this.generation.pop();
-    }
+    this.sort_population();
+    this.generation = this.generation.slice(0,this.pop);
   }
 
   mutate(chromosome) {
@@ -161,10 +166,10 @@ class GenNQueens {
     let temp = chromosome[index1];
     chromosome[index1] = chromosome[index2];
     chromosome[index2] = temp;
-    if(this.fitness(chromosome) < this.fitness(rollback_chromo)){
-      chromosome[index1] = rollback_chromo[index1];
-      chromosome[index2] = rollback_chromo[index2];
-    }
+    // if(this.fitness(chromosome) < this.fitness(rollback_chromo)){
+    //   chromosome[index1] = rollback_chromo[index1];
+    //   chromosome[index2] = rollback_chromo[index2];
+    // }
   }
 
   debug_sort_population() {
