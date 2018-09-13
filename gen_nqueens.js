@@ -31,7 +31,9 @@ class GenNQueens {
 
   sort_population() {
     this.generation.sort((chromo1, chromo2) => {
-      return this.fitness(chromo1) - this.fitness(chromo2);
+      let diff = this.fitness(chromo1) - this.fitness(chromo2);
+
+      return diff >= 0 ? 1 : -1;
     })
   }
 
